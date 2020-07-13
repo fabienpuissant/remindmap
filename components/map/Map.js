@@ -11,12 +11,13 @@ class Map extends React.Component {
         }
 
         Geolocation.setRNConfiguration(config);
-
+        console.log("ok");
 
     }
 
     componentWillMount() {
-        Geolocation.getCurrentPosition(info => console.log(info));
+        Geolocation.getCurrentPosition(position => this.setState({ location: position }));
+
     }
 
     render() {
@@ -36,12 +37,7 @@ class Map extends React.Component {
             <>
                 <View style={styles.container}>
                     <MapView style={styles.mapStyle}
-                        initialRegion={{
-                            latitude: 37.78825,
-                            longitude: -122.4324,
-                            latitudeDelta: 0.0922,
-                            longitudeDelta: 0.0421,
-                        }}
+                        initialRegion={this.state.location}
                     />
                 </View>
             </>
