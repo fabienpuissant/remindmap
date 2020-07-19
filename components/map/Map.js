@@ -1,49 +1,242 @@
-import React from 'react';
-import { StyleSheet, Text, View, Dimensions } from 'react-native';
-import MapView from 'react-native-maps';
-import Geolocation from '@react-native-community/geolocation';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, Dimensions, TextInput } from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
+import * as Location from 'expo-location';
+import * as Permissions from 'expo-permissions';
+import PopupForm from './PopupForm';
 
-class Map extends React.Component {
-    constructor(props) {
-        super(props)
-        this.state = {
-            location: null
+import AsyncStorage from '@react-native-community/async-storage';
+import uuid from 'react-uuid'
+
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#fff',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    mapStyle: {
+        width: Dimensions.get('window').width,
+        height: Dimensions.get('window').height,
+    },
+    input: {
+
+        textAlign: 'center',
+        height: 40,
+        borderColor: 'gray',
+        borderWidth: 1
+    }
+});
+export default function Map() {
+
+    const [location, setLocation] = useState(null)
+    const [geocode, setGeocode] = useState(null)
+    const [errorMessage, setErrorMessage] = useState("")
+    const [markers, setMarkers] = useState([])
+    const [isPopupVisible, setIsPopupVisible] = useState(false)
+    const [title, setTitle] = useState("")
+    const [description, setDescription] = useState("")
+    const [eventClick, setEventClick] = useState(null)
+    const [isEditPopupVisible, setisEditPopupVisible] = useState(false)
+    const [idMarkerPointed, setIdMarkerPointed] = useState("")
+    const [navigationValue, setNavigationValue] = useState(null)
+
+    const handleTitleChanged = (title) => {
+        setTitle(title);
+    }
+
+    const handleDescriptionChanged = (description) => {
+        setDescription(description)
+    }
+
+    const handleCancel = () => {
+        setTitle("")
+        setDescription("")
+        setIsPopupVisible(false)
+        setisEditPopupVisible(false)
+    }
+
+    const getLocationAsync = async () => {
+        let { status } = await Permissions.askAsync(Permissions.LOCATION);
+        if (status !== 'granted') {
+            setErrorMessage('Permission to access location was denied');
         }
 
-        Geolocation.setRNConfiguration(config);
-        console.log("ok");
-
-    }
-
-    componentWillMount() {
-        Geolocation.getCurrentPosition(position => this.setState({ location: position }));
-
-    }
-
-    render() {
-        const styles = StyleSheet.create({
-            container: {
-                flex: 1,
-                backgroundColor: '#fff',
-                alignItems: 'center',
-                justifyContent: 'center',
-            },
-            mapStyle: {
-                width: Dimensions.get('window').width,
-                height: Dimensions.get('window').height,
-            },
+        let locate = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest });
+        const { latitude, longitude } = locate.coords
+        getGeocodeAsync({ latitude, longitude })
+        const window = Dimensions.get('window');
+        const { width, height } = window
+        lat_delta = 0
+        long_delta = (width / height) / 100
+        setLocation({
+            latitude: latitude,
+            longitude: longitude,
+            latitudeDelta: lat_delta,
+            longitudeDelta: long_delta
         });
-        return (
-            <>
-                <View style={styles.container}>
-                    <MapView style={styles.mapStyle}
-                        initialRegion={this.state.location}
-                    />
-                </View>
-            </>
-        )
+    };
+
+    const getGeocodeAsync = async (locate) => {
+        let geocode = await Location.reverseGeocodeAsync(locate)
+        setGeocode(geocode)
     }
+
+    useEffect(() => {
+        getLocationAsync()
+        //storeMarkers([])
+        getMarkers()
+    }, [])
+
+    const handleClick = (e) => {
+        //Add a popup to describe the marker and title it 
+        setEventClick({
+            latitude: e.nativeEvent.coordinate.latitude,
+            longitude: e.nativeEvent.coordinate.longitude
+        })
+        setIsPopupVisible(true)
+    }
+
+    const handleSubmit = () => {
+        setIsPopupVisible(false)
+        //Create the marker
+        var newMarkers = [...markers]
+        const id = uuid()
+        newMarkers.push({
+            id: id,
+            coordinate: {
+                latitude: eventClick.latitude,
+                longitude: eventClick.longitude
+            },
+            title: title,
+            description: description
+        })
+        storeMarkers(newMarkers)
+        setMarkers(newMarkers)
+        setDescription("")
+        setTitle("")
+    }
+
+    const handleEditClick = (markerId) => {
+        for (let i = 0; i < markers.length; i++) {
+            if (markers[i].id === markerId) {
+                setTitle(markers[i].title)
+                setDescription(markers[i].description)
+            }
+        }
+        setisEditPopupVisible(true)
+        setIdMarkerPointed(markerId)
+
+
+
+    }
+
+    const handleEdit = () => {
+        setisEditPopupVisible(false)
+        var newMarkers = [...markers]
+        for (let i = 0; i < markers.length; i++) {
+            if (markers[i].id === idMarkerPointed) {
+                newMarkers[i].title = title
+                newMarkers[i].description = description
+            }
+        }
+
+        storeMarkers(newMarkers)
+        setMarkers(newMarkers)
+        setDescription("")
+        setTitle("")
+    }
+
+    const handleRemove = () => {
+        setisEditPopupVisible(false)
+        var newMarkers = []
+        for (let i = 0; i < markers.length; i++) {
+            if (markers[i].id !== idMarkerPointed) {
+                newMarkers.push(markers[i])
+            }
+        }
+        storeMarkers(newMarkers)
+        setMarkers(newMarkers)
+        setDescription("")
+        setTitle("")
+    }
+
+    const storeMarkers = async (value) => {
+        try {
+            const jsonValue = JSON.stringify(value)
+            await AsyncStorage.setItem('markers', jsonValue)
+        } catch (e) {
+            // saving error
+        }
+    }
+
+    const handleChangeNavigation = (value) => {
+        setNavigationValue(value)
+    }
+
+
+
+    const getMarkers = async () => {
+        try {
+            const jsonValue = await AsyncStorage.getItem('markers').then(res => {
+                setMarkers(JSON.parse(res))
+            })
+            return jsonValue != null ? JSON.parse(jsonValue) : null;
+        } catch (e) {
+            // error reading value
+        }
+    }
+
+
+
+
+    //TODO
+    //Add a popup onLongPress
+    //Add a popup on POI press
+
+    return (
+        <>
+            <View style={styles.container}>
+                <MapView style={styles.mapStyle}
+                    initialRegion={location}
+                    onLongPress={handleClick}
+                >
+                    {markers !== [] && markers.map(marker => (
+                        <Marker
+                            coordinate={marker.coordinate}
+                            title={marker.title}
+                            description={marker.description}
+                            key={marker.id}
+                            onCalloutPress={() => handleEditClick(marker.id)}
+
+                        />
+                    ))}
+                    <PopupForm
+                        handleSubmit={handleSubmit}
+                        isVisible={isPopupVisible}
+                        title={title}
+                        description={description}
+                        handleTitleChanged={handleTitleChanged}
+                        handleDescriptionChanged={handleDescriptionChanged}
+                        handleCancel={handleCancel} />
+
+                    <PopupForm
+                        handleSubmit={handleEdit}
+                        isVisible={isEditPopupVisible}
+                        title={title}
+                        description={description}
+                        handleTitleChanged={handleTitleChanged}
+                        handleDescriptionChanged={handleDescriptionChanged}
+                        handleCancel={handleCancel}
+                        handleRemove={handleRemove} />
+                </MapView>
+
+            </View>
+        </>
+    )
 
 }
 
-export default Map
+
+
