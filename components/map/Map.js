@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, Dimensions, TextInput } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker, Circle } from 'react-native-maps';
 import * as Location from 'expo-location';
 import * as Permissions from 'expo-permissions';
 import PopupForm from './PopupForm';
@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
         borderWidth: 1
     }
 });
-export default function Map() {
+export default function Map({ route, navigation }) {
 
     const [location, setLocation] = useState(null)
     const [geocode, setGeocode] = useState(null)
@@ -88,6 +88,22 @@ export default function Map() {
         //storeMarkers([])
         getMarkers()
     }, [])
+
+    useEffect(() => {
+        if (route.params != null) {
+            const marker = route.params.marker;
+            const window = Dimensions.get('window');
+            const { width, height } = window
+            lat_delta = 0
+            long_delta = (width / height) / 100
+            setLocation({
+                latitude: marker[0].coordinate.latitude,
+                longitude: marker[0].coordinate.longitude,
+                latitudeDelta: lat_delta,
+                longitudeDelta: long_delta
+            })
+        }
+    }, [route])
 
     const handleClick = (e) => {
         //Add a popup to describe the marker and title it 
@@ -180,9 +196,14 @@ export default function Map() {
     const getMarkers = async () => {
         try {
             const jsonValue = await AsyncStorage.getItem('markers').then(res => {
-                setMarkers(JSON.parse(res))
+                if (res === null) {
+                    setMarkers([])
+                } else {
+                    setMarkers(JSON.parse(res))
+
+                }
             })
-            return jsonValue != null ? JSON.parse(jsonValue) : null;
+            return jsonValue != [] ? JSON.parse(jsonValue) : [];
         } catch (e) {
             // error reading value
         }
@@ -199,9 +220,11 @@ export default function Map() {
         <>
             <View style={styles.container}>
                 <MapView style={styles.mapStyle}
-                    initialRegion={location}
+                    region={location}
                     onLongPress={handleClick}
+                    followsUserLocation={true}
                 >
+
                     {markers !== [] && markers.map(marker => (
                         <Marker
                             coordinate={marker.coordinate}
@@ -212,6 +235,7 @@ export default function Map() {
 
                         />
                     ))}
+
                     <PopupForm
                         handleSubmit={handleSubmit}
                         isVisible={isPopupVisible}

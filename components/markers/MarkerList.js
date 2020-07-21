@@ -5,7 +5,7 @@ import {
 import { useIsFocused } from '@react-navigation/native';
 import AsyncStorage from '@react-native-community/async-storage';
 
-export default function MarkerList(props) {
+export default function MarkerList({ navigation }) {
 
     const styles = StyleSheet.create({
         container: {
@@ -90,7 +90,9 @@ export default function MarkerList(props) {
     }
 
 
-    const handleFind = () => {
+    const handleFind = (id) => {
+        var marker = data.filter(item => item.id === id)
+        navigation.navigate('Map', { marker: marker })
 
     }
 
@@ -121,7 +123,7 @@ export default function MarkerList(props) {
                         <Text style={styles.title_text}>{item.title}</Text>
                         <Button
                             style={styles.button}
-                            onPress={handleFind}
+                            onPress={() => handleFind(item.id)}
                             title="find"
 
 
