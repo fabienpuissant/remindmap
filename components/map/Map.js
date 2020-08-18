@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, Dimensions, TextInput } from 'react-native';
 import MapView, { Marker, Circle } from 'react-native-maps';
@@ -17,8 +18,9 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     mapStyle: {
+        marginTop:30,
         width: Dimensions.get('window').width,
-        height: Dimensions.get('window').height,
+        height: Dimensions.get('window').height - 50,
     },
     input: {
 
@@ -68,8 +70,8 @@ export default function Map({ route, navigation }) {
         getGeocodeAsync({ latitude, longitude })
         const window = Dimensions.get('window');
         const { width, height } = window
-        lat_delta = 0
-        long_delta = (width / height) / 100
+        lat_delta = 0.0025
+        long_delta = (width / height) * lat_delta
         setLocation({
             latitude: latitude,
             longitude: longitude,
@@ -94,8 +96,8 @@ export default function Map({ route, navigation }) {
             const marker = route.params.marker;
             const window = Dimensions.get('window');
             const { width, height } = window
-            lat_delta = 0
-            long_delta = (width / height) / 100
+            lat_delta = 0.0025
+            long_delta = (width / height) / 300
             setLocation({
                 latitude: marker[0].coordinate.latitude,
                 longitude: marker[0].coordinate.longitude,
@@ -117,19 +119,21 @@ export default function Map({ route, navigation }) {
     const handleSubmit = () => {
         setIsPopupVisible(false)
         //Create the marker
-        var newMarkers = [...markers]
-        const id = uuid()
-        newMarkers.push({
-            id: id,
-            coordinate: {
-                latitude: eventClick.latitude,
-                longitude: eventClick.longitude
-            },
-            title: title,
-            description: description
-        })
-        storeMarkers(newMarkers)
-        setMarkers(newMarkers)
+        if (title !== "" || description !== "") {
+            var newMarkers = [...markers]
+            const id = uuid()
+            newMarkers.push({
+                id: id,
+                coordinate: {
+                    latitude: eventClick.latitude,
+                    longitude: eventClick.longitude
+                },
+                title: title,
+                description: description
+            })
+            storeMarkers(newMarkers)
+            setMarkers(newMarkers)
+        }
         setDescription("")
         setTitle("")
     }
@@ -223,6 +227,8 @@ export default function Map({ route, navigation }) {
                     region={location}
                     onLongPress={handleClick}
                     followsUserLocation={true}
+                    showsUserLocation={true}
+                    showsMyLocationButton={true}
                 >
 
                     {markers !== [] && markers.map(marker => (
@@ -261,6 +267,4 @@ export default function Map({ route, navigation }) {
     )
 
 }
-
-
 

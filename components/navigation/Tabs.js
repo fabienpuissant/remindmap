@@ -10,6 +10,7 @@ const Tab = createMaterialBottomTabNavigator();
 
 
 export default function Tabs() {
+    
     return (
         <Tab.Navigator
             initialRouteName="Map"

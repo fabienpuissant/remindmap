@@ -13,7 +13,7 @@ const styles = StyleSheet.create({
     button: {
         marginRight: 30,
         marginLeft: 30,
-        marginTop: 30
+        marginTop: 30,
     },
     remove: {
         marginRight: 30,
@@ -47,15 +47,15 @@ export default function Formulaire(props) {
 
             {props.handleRemove == null ?
                 <View style={styles.button}>
-                    <Button mode="contained" onPress={props.handleSubmit} >Add</Button>
+                    <Button mode="contained" onPress={props.handleSubmit} color="#096ff5">Add</Button>
                 </View>
                 :
                 <>
                     <View style={styles.edit}>
-                        <Button mode="contained" onPress={props.handleSubmit} >Edit</Button>
+                        <Button mode="contained" onPress={props.handleSubmit} color="#096ff5">Edit</Button>
                     </View>
                     <View style={styles.remove}>
-                        <Button mode="contained" onPress={props.handleRemove} >Remove</Button>
+                        <Button mode="contained" onPress={props.handleRemove} color="#096ff5">Remove</Button>
                     </View>
                 </>
             }
